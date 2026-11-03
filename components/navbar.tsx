@@ -15,21 +15,21 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { getUser, saveUser } from "@/lib/store";
-import type { User } from "@/lib/types";
+import { authClient } from "@/lib/auth-client";
 
 export default function Navbar() {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user ?? null;
+
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [dark, setDark] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const router = useRouter();
 
-  // Load user and theme when the component mounts
+  // Load theme when the component mounts
   useEffect(() => {
-    setUser(getUser());
-
     const savedTheme = localStorage.getItem("booknook_theme");
     const isDark =
       savedTheme === "dark" ||
@@ -37,17 +37,20 @@ export default function Navbar() {
 
     setDark(isDark);
     document.documentElement.classList.toggle("dark", isDark);
-
-    const syncUser = () => {
-      setUser(getUser());
-    };
-
-    window.addEventListener("storage", syncUser);
-
-    return () => {
-      window.removeEventListener("storage", syncUser);
-    };
   }, []);
+
+  // Close dropdown when session changes (e.g. after logout)
+  useEffect(() => {
+    if (!user) {
+      setOpen(false);
+      setMenu(false);
+    }
+  }, [user]);
+
+  // Reset image error when profile image changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.image]);
 
   // Toggle light and dark themes
   function toggleTheme() {
@@ -67,12 +70,10 @@ export default function Navbar() {
   }
 
   // Logout user
-  function logout() {
-    saveUser(null);
-    setUser(null);
+  async function logout() {
+    await authClient.signOut();
     setOpen(false);
     setMenu(false);
-
     router.push("/");
   }
 
@@ -85,6 +86,9 @@ export default function Navbar() {
   // Get user's initial for the profile avatar
   const userInitial =
     user?.name?.trim().charAt(0).toUpperCase() || "U";
+
+  // Don't render auth-dependent UI until session is resolved
+  const authReady = !isPending;
 
   return (
     <header className="nav-shell">
@@ -135,75 +139,78 @@ export default function Navbar() {
           </button>
 
           {/* Logged-in User */}
-          {user ? (
-            <div className="profile-wrap">
+          {authReady && (
+            user ? (
+              <div className="profile-wrap">
 
-              <button
-                className="profile-trigger"
-                onClick={() => setOpen(!open)}
-                aria-expanded={open}
-              >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.name}
-                  />
-                ) : (
-                  <span className="profile-avatar-placeholder">
-                    {userInitial}
+                <button
+                  className="profile-trigger"
+                  onClick={() => setOpen(!open)}
+                  aria-expanded={open}
+                >
+                  {user.image && !imageError ? (
+                    <img
+                      src={user.image}
+                      alt={user.name}
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <span className="profile-avatar-placeholder">
+                      {userInitial}
+                    </span>
+                  )}
+
+                  <span>
+                    {user.name.split(" ")[0]}
                   </span>
-                )}
 
-                <span>
-                  {user.name.split(" ")[0]}
-                </span>
+                  <ChevronDown size={15} />
+                </button>
 
-                <ChevronDown size={15} />
-              </button>
+                {/* Profile Dropdown */}
+                {open && (
+                  <div className="profile-menu">
 
-              {/* Profile Dropdown */}
-              {open && (
-                <div className="profile-menu">
+                    <div className="profile-meta">
+                      <b>{user.name}</b>
+                      <small>{user.email}</small>
+                    </div>
 
-                  <div className="profile-meta">
-                    <b>{user.name}</b>
-                    <small>{user.email}</small>
+                    <Link
+                      href="/profile"
+                      onClick={() => setOpen(false)}
+                    >
+                      <UserRound size={16} />
+                      My Profile
+                    </Link>
+
+                    <button onClick={logout}>
+                      <LogOut size={16} />
+                      Logout
+                    </button>
+
                   </div>
+                )}
+              </div>
+            ) : (
 
-                  <Link
-                    href="/profile"
-                    onClick={() => setOpen(false)}
-                  >
-                    <UserRound size={16} />
-                    My Profile
-                  </Link>
+              /* Logged-out Actions */
+              <div className="auth-actions">
+                <Link
+                  className="btn btn-ghost btn-small"
+                  href="/login"
+                >
+                  Log in
+                </Link>
 
-                  <button onClick={logout}>
-                    <LogOut size={16} />
-                    Logout
-                  </button>
-
-                </div>
-              )}
-            </div>
-          ) : (
-
-            /* Logged-out Actions */
-            <div className="auth-actions">
-              <Link
-                className="btn btn-ghost btn-small"
-                href="/login"
-              >
-                Log in
-              </Link>
-
-              <Link
-                className="btn btn-primary btn-small"
-                href="/register"
-              >
-                Join free <span>↗</span>
-              </Link>
-            </div>
+                <Link
+                  className="btn btn-primary btn-small"
+                  href="/register"
+                >
+                  Join free <span>↗</span>
+                </Link>
+              </div>
+            )
           )}
 
           {/* Mobile Menu Button */}
@@ -221,7 +228,7 @@ export default function Navbar() {
         {menu && (
           <div className="mobile-menu">
 
-            {[ 
+            {[
               ...links,
               ...(user
                 ? [
@@ -240,7 +247,7 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {!user && (
+            {!user && authReady && (
               <>
                 <Link
                   href="/login"

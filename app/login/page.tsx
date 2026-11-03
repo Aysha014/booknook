@@ -7,7 +7,6 @@ import { Suspense, useState } from "react";
 import toast from "react-hot-toast";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 
-import { saveUser } from "@/lib/store";
 import { authClient } from "@/lib/auth-client";
 
 function LoginForm() {
@@ -18,8 +17,9 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
 
     const trimmedEmail = email.trim();
@@ -40,42 +40,39 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Temporary demo login.
-      // Real credential verification will be added with BetterAuth.
-      const name = trimmedEmail
-        .split("@")[0]
-        .replace(/[._-]/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-
-      saveUser({
-        name,
+      const { error } = await authClient.signIn.email({
         email: trimmedEmail,
-        photoURL: "",
+        password,
       });
+
+      if (error) {
+        toast.error(error.message || "Invalid email or password.");
+        return;
+      }
 
       toast.success("Welcome back to BookNook!");
 
       const nextRoute = params.get("next") || "/";
-
       router.push(nextRoute);
     } catch {
       toast.error("Login failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   }
 
   async function google() {
-  try {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: params.get("next") || "/",
-    });
-  } catch {
-    toast.error("Google sign-in failed. Please try again.");
+    try {
+      setGoogleLoading(true);
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: params.get("next") || "/",
+      });
+    } catch {
+      toast.error("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
   }
-}
-
-
 
   return (
     <div className="container">
@@ -190,12 +187,13 @@ function LoginForm() {
             type="button"
             className="google-btn"
             onClick={google}
+            disabled={googleLoading}
           >
             <b style={{ color: "#4285F4", fontSize: 18 }}>
               G
             </b>
 
-            Continue with Google
+            {googleLoading ? "Connecting..." : "Continue with Google"}
           </button>
 
           {/* Register Link */}

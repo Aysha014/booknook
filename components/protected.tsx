@@ -1,29 +1,41 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-import { getUser } from "@/lib/store";
+import { authClient } from "@/lib/auth-client";
 
 export default function Protected({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [ready, setReady] = useState(false);
+  const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
   const path = usePathname();
 
   useEffect(() => {
-    if (!getUser()) {
-      router.replace(`/login?next=${encodeURIComponent(path)}`);
-    } else {
-      setReady(true);
-    }
-  }, [path, router]);
+    // Wait until the session fetch has settled before deciding
+    if (isPending) return;
 
-  if (!ready) {
+    if (!session?.user) {
+      router.replace(`/login?next=${encodeURIComponent(path)}`);
+    }
+  }, [isPending, session, path, router]);
+
+  // Show spinner while session is loading
+  if (isPending) {
+    return (
+      <div className="page-loader">
+        <span className="spinner" />
+        <p>Checking your bookshelf…</p>
+      </div>
+    );
+  }
+
+  // Show spinner while redirect is in-flight (no user)
+  if (!session?.user) {
     return (
       <div className="page-loader">
         <span className="spinner" />

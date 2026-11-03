@@ -1,5 +1,5 @@
-import { createAuthClient } from "better-auth/react"
-export const authClient = createAuthClient({
+import { createAuthClient } from "better-auth/react";
 
-    baseURL: process.env.BETTER_AUTH_URL
-})
+// baseURL is intentionally omitted — Better Auth defaults to the current
+// window.location.origin, which is correct for a Next.js monorepo.
+export const authClient = createAuthClient();

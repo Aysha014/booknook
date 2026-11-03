@@ -9,20 +9,25 @@ import { Pencil, Trash2, Plus } from "lucide-react";
 
 import Protected from "@/components/protected";
 import Modal from "@/components/modal";
-import { getBooks, getUser, deleteBook } from "@/lib/store";
+import { getBooks, deleteBook } from "@/lib/store";
+import { authClient } from "@/lib/auth-client";
 import type { Book } from "@/lib/types";
 
 export default function MyBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selected, setSelected] = useState<Book | null>(null);
   const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const sessionUser = session?.user ?? null;
 
   function refresh() {
-    const u = getUser();
-    setBooks(getBooks().filter((b) => b.addedByEmail === u?.email));
+    setBooks(getBooks().filter((b) => b.addedByEmail === sessionUser?.email));
   }
 
-  useEffect(() => refresh(), []);
+  useEffect(() => {
+    refresh();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUser?.email]);
 
   function remove() {
     if (!selected) return;
@@ -42,7 +47,7 @@ export default function MyBooks() {
               <span className="eyebrow">YOUR CONTRIBUTION</span>
               <h1 className="page-title">My bookshelf</h1>
               <p className="page-intro">
-                Manage the books you’ve shared with the community.
+                Manage the books you've shared with the community.
               </p>
             </div>
 
