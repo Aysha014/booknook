@@ -1,10 +1,12 @@
+
 "use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import toast from "react-hot-toast";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Eye, EyeOff } from "lucide-react";
+
 import { saveUser } from "@/lib/store";
 
 function LoginForm() {
@@ -13,28 +15,52 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast.error("Enter your email and password.");
+    const trimmedEmail = email.trim();
+
+    // Validate email
+    if (!trimmedEmail || !password) {
+      toast.error("Please enter your email and password.");
       return;
     }
 
-    const name = email
-      .split("@")[0]
-      .replace(/[._-]/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    saveUser({
-      name,
-      email,
-      photoURL: "",
-    });
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
 
-    toast.success("Welcome back to BookNook!");
-    router.push(params.get("next") || "/");
+    setLoading(true);
+
+    try {
+      // Temporary demo login.
+      // Real credential verification will be added with BetterAuth.
+      const name = trimmedEmail
+        .split("@")[0]
+        .replace(/[._-]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      saveUser({
+        name,
+        email: trimmedEmail,
+        photoURL: "",
+      });
+
+      toast.success("Welcome back to BookNook!");
+
+      const nextRoute = params.get("next") || "/";
+
+      router.push(nextRoute);
+    } catch {
+      toast.error("Login failed. Please try again.");
+      setLoading(false);
+    }
   }
 
   function google() {
@@ -46,11 +72,16 @@ function LoginForm() {
   return (
     <div className="container">
       <div className="auth-layout">
+
         {/* Login Illustration */}
         <div className="auth-art">
           <div>
-            <span className="eyebrow">WELCOME BACK, READER</span>
+            <span className="eyebrow">
+              WELCOME BACK, READER
+            </span>
+
             <h2>Your next chapter is waiting.</h2>
+
             <p>
               Pick up where you left off. Your bookshelf misses you.
             </p>
@@ -65,50 +96,106 @@ function LoginForm() {
         {/* Login Form */}
         <div className="auth-form">
           <span className="eyebrow">GOOD TO SEE YOU</span>
+
           <h1>Welcome back!</h1>
+
           <p>Log in to your BookNook account.</p>
 
           <form onSubmit={submit}>
+            {/* Email */}
             <div className="form-group">
-              <label>Email address</label>
+              <label htmlFor="email">
+                Email address
+              </label>
+
               <input
+                id="email"
                 className="field"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
             </div>
 
+            {/* Password */}
             <div className="form-group">
-              <label>Password</label>
-              <input
-                className="field"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-              />
+              <label htmlFor="password">
+                Password
+              </label>
+
+              <div className="password-wrapper">
+                <input
+                  id="password"
+                  className="field"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
             </div>
 
-            <button className="btn btn-primary" type="submit">
-              Log in to BookNook
-              <BookOpen size={16} />
+            {/* Forget Password */}
+            <div className="forgot-password">
+              <Link href="/forgot-password">
+                Forgot password?
+              </Link>
+            </div>
+
+            {/* Login Button */}
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Log in to BookNook"}
+              {!loading && <BookOpen size={16} />}
             </button>
           </form>
 
-          <div className="divider-or">OR CONTINUE WITH</div>
+          {/* Google Login */}
+          <div className="divider-or">
+            OR CONTINUE WITH
+          </div>
 
-          <button className="google-btn" onClick={google}>
-            <b style={{ color: "#4285F4", fontSize: 18 }}>G</b>
+          <button
+            type="button"
+            className="google-btn"
+            onClick={google}
+          >
+            <b style={{ color: "#4285F4", fontSize: 18 }}>
+              G
+            </b>
+
             Continue with Google
           </button>
 
+          {/* Register Link */}
           <div className="auth-switch">
             New to BookNook?{" "}
-            <Link href="/register">Create an account</Link>
+            <Link href="/register">
+              Create an account
+            </Link>
           </div>
         </div>
       </div>
