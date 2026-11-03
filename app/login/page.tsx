@@ -30,7 +30,7 @@ function LoginForm() {
     saveUser({
       name,
       email,
-      photoURL: "https://i.pravatar.cc/100?img=12",
+      photoURL: "",
     });
 
     toast.success("Welcome back to BookNook!");
