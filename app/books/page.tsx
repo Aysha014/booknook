@@ -1,5 +1,96 @@
+
 "use client";
-import { useEffect,useMemo,useState } from "react";import { Search,SlidersHorizontal } from "lucide-react";
-import BookCard from "@/components/book-card";import { getBooks } from "@/lib/store";import { seedBooks } from "@/lib/data";import type {Book,Category} from "@/lib/types";
-const categories=["All","Fiction","Science","History","Kids","Others"];
-export default function BooksPage(){const [books,setBooks]=useState<Book[]>(seedBooks),[query,setQuery]=useState(""),[category,setCategory]=useState("All");useEffect(()=>setBooks(getBooks()),[]);const filtered=useMemo(()=>books.filter(b=>(category==="All"||b.category===category)&&`${b.title} ${b.author}`.toLowerCase().includes(query.toLowerCase())),[books,category,query]);return <div className="page-wrap"><div className="container"><div className="page-head"><span className="eyebrow">THE BOOKSHELF</span><h1 className="page-title">Find a story to get lost in.</h1><p className="page-intro">Browse our little collection of books. Your next favorite might be one click away.</p></div><div className="toolbar"><div className="search-box"><Search size={17}/><input className="field" placeholder="Search by title or author..." value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="filter-pills">{categories.map(c=><button key={c} className={`filter-pill ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{c}</button>)}</div></div>{filtered.length?<div className="book-grid">{filtered.map(b=><BookCard key={b.id} book={b}/>)}</div>:<div className="empty-state"><div className="empty-icon"><SlidersHorizontal/></div><h3>No books found</h3><p>Try a different search or category.</p><button className="btn btn-ghost" onClick={()=>{setQuery("");setCategory("All")}}>Clear filters</button></div>}</div></div>}
+
+import { useEffect, useMemo, useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+
+import BookCard from "@/components/book-card";
+import { getBooks } from "@/lib/store";
+import { seedBooks } from "@/lib/data";
+import type { Book, Category } from "@/lib/types";
+
+const categories = ["All", "Fiction", "Science", "History", "Kids", "Others"];
+
+export default function BooksPage() {
+  const [books, setBooks] = useState<Book[]>(seedBooks);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+
+  useEffect(() => setBooks(getBooks()), []);
+
+  const filtered = useMemo(
+    () =>
+      books.filter(
+        (b) =>
+          (category === "All" || b.category === category) &&
+          `${b.title} ${b.author}`
+            .toLowerCase()
+            .includes(query.toLowerCase())
+      ),
+    [books, category, query]
+  );
+
+  return (
+    <div className="page-wrap">
+      <div className="container">
+        <div className="page-head">
+          <span className="eyebrow">THE BOOKSHELF</span>
+          <h1 className="page-title">Find a story to get lost in.</h1>
+          <p className="page-intro">
+            Browse our little collection of books. Your next favorite might
+            be one click away.
+          </p>
+        </div>
+
+        <div className="toolbar">
+          <div className="search-box">
+            <Search size={17} />
+            <input
+              className="field"
+              placeholder="Search by title or author..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-pills">
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={`filter-pill ${category === c ? "active" : ""}`}
+                onClick={() => setCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filtered.length ? (
+          <div className="book-grid">
+            {filtered.map((b) => (
+              <BookCard key={b.id} book={b} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <SlidersHorizontal />
+            </div>
+            <h3>No books found</h3>
+            <p>Try a different search or category.</p>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setQuery("");
+                setCategory("All");
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
