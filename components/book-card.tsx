@@ -1,0 +1,4 @@
+import Link from "next/link";
+import type { Book } from "@/lib/types";
+import { ArrowUpRight,BookOpen } from "lucide-react";
+export default function BookCard({book}:{book:Book}){return <article className="book-card"><Link href={`/books/${book.id}`} className="book-cover"><img src={book.image} alt={book.title}/><span className="category-tag">{book.category}</span><span className="cover-arrow"><ArrowUpRight size={18}/></span></Link><div className="book-card-body"><div><h3>{book.title}</h3><p>by {book.author}</p></div><div className="book-card-bottom"><span className="availability"><BookOpen size={14}/>{book.availableCopies>0?`${book.availableCopies} available`:"All borrowed"}</span><Link href={`/books/${book.id}`} className="text-link">Details <ArrowUpRight size={14}/></Link></div></div></article>}
