@@ -7,6 +7,8 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { BookOpen } from "lucide-react";
 
+import { authClient } from "@/lib/auth-client";
+
 export default function Register() {
   const router = useRouter();
 
@@ -14,11 +16,12 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Password validation
     if (
       !/[A-Z]/.test(password) ||
       !/[a-z]/.test(password) ||
@@ -30,22 +33,59 @@ export default function Register() {
       return;
     }
 
-    // Name validation
     if (!name.trim()) {
       toast.error("Please enter your name.");
       return;
     }
 
-    toast.success("Registration details accepted. Please log in.");
-    router.push("/login");
+    try {
+      setLoading(true);
+
+      const { error } = await authClient.signUp.email({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        image: photo.trim() || undefined,
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.error(error.message || "Registration failed.");
+        return;
+      }
+
+      toast.success("Account created successfully!");
+      router.push("/");
+    } catch {
+      toast.error("Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function google() {
+    try {
+      setGoogleLoading(true);
+
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.error(error.message || "Google sign-up failed.");
+        setGoogleLoading(false);
+      }
+    } catch {
+      toast.error("Google sign-up failed. Please try again.");
+      setGoogleLoading(false);
+    }
   }
 
   return (
     <div className="page-wrap">
       <div className="container">
         <div className="auth-layout">
-
-          {/* Registration Illustration */}
           <div className="auth-art">
             <div>
               <span className="eyebrow">COME ON IN</span>
@@ -61,7 +101,6 @@ export default function Register() {
             />
           </div>
 
-          {/* Registration Form */}
           <div className="auth-form">
             <span className="eyebrow">START YOUR STORY</span>
 
@@ -69,12 +108,11 @@ export default function Register() {
             <p>Make a little space for more stories.</p>
 
             <form onSubmit={submit}>
-
-              {/* Name */}
               <div className="form-group">
-                <label>Your name</label>
+                <label htmlFor="name">Your name</label>
 
                 <input
+                  id="name"
                   className="field"
                   required
                   value={name}
@@ -83,25 +121,26 @@ export default function Register() {
                 />
               </div>
 
-              {/* Email */}
               <div className="form-group">
-                <label>Email address</label>
+                <label htmlFor="email">Email address</label>
 
                 <input
+                  id="email"
                   className="field"
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                 />
               </div>
 
-              {/* Photo URL */}
               <div className="form-group">
-                <label>Photo URL</label>
+                <label htmlFor="photo">Photo URL</label>
 
                 <input
+                  id="photo"
                   className="field"
                   type="url"
                   value={photo}
@@ -110,14 +149,15 @@ export default function Register() {
                 />
               </div>
 
-              {/* Password */}
               <div className="form-group">
-                <label>Password</label>
+                <label htmlFor="password">Password</label>
 
                 <input
+                  id="password"
                   className="field"
                   type="password"
                   required
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
@@ -128,34 +168,33 @@ export default function Register() {
                 </span>
               </div>
 
-              <button className="btn btn-primary">
-                Create my account
-                <BookOpen size={16} />
+              <button
+                className="btn btn-primary"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Creating account..." : "Create my account"}
+                {!loading && <BookOpen size={16} />}
               </button>
             </form>
 
-            {/* Google Registration */}
             <div className="divider-or">OR</div>
 
             <button
+              type="button"
               className="google-btn"
-              onClick={() =>
-                toast(
-                  "Google sign-up will be connected with BetterAuth during backend integration."
-                )
-              }
+              onClick={google}
+              disabled={googleLoading}
             >
               <b style={{ color: "#4285F4", fontSize: 18 }}>G</b>
-              Sign up with Google
+              {googleLoading ? "Connecting..." : "Sign up with Google"}
             </button>
 
-            {/* Login Link */}
             <div className="auth-switch">
               Already have an account?{" "}
               <Link href="/login">Log in</Link>
             </div>
           </div>
-
         </div>
       </div>
     </div>

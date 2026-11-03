@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 
 import { saveUser } from "@/lib/store";
+import { authClient } from "@/lib/auth-client";
 
 function LoginForm() {
   const router = useRouter();
@@ -63,11 +64,18 @@ function LoginForm() {
     }
   }
 
-  function google() {
-    toast(
-      "Google sign-in will be connected with BetterAuth during backend integration."
-    );
+  async function google() {
+  try {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: params.get("next") || "/",
+    });
+  } catch {
+    toast.error("Google sign-in failed. Please try again.");
   }
+}
+
+
 
   return (
     <div className="container">
