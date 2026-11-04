@@ -1,0 +1,41 @@
+name: Deploy Next.js to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+# Allow the GITHUB_TOKEN to publish to Pages
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (static export)
+        run: npm run build
+        # next.config.ts already sets output:"export", basePath, assetPrefix
+
+      - name: Add .nojekyll
+        # Prevents GitHub Pages from ignoring the _next folder (starts with _)
+        run: touch ./out/.nojekyll
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          publish_branch: gh-pages
+          keep_files: false
