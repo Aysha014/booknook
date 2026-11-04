@@ -161,10 +161,10 @@ function LoginForm() {
             </div>
 
             {/* Forget Password */}
-            <div className="forgot-password">
-              <Link href="/forgot-password">
+            <div className="forgot-password" style={{ color: "#EF4444", fontSize: 13, fontWeight: 600, cursor: "default" }}>
+              
                 Forgot password?
-              </Link>
+              
             </div>
 
             {/* Login Button */}
