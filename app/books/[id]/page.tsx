@@ -1,4 +1,10 @@
 "use client";
+
+// Required for Next.js static export with dynamic routes.
+// IDs are resolved at runtime in the browser (via useParams + localStorage).
+export function generateStaticParams() {
+  return [];
+}
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
