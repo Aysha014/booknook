@@ -64,23 +64,19 @@ export default function Register() {
   }
 
   async function google() {
-    try {
-      setGoogleLoading(true);
+  try {
+    setGoogleLoading(true);
 
-      const { error } = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
-
-      if (error) {
-        toast.error(error.message || "Google sign-up failed.");
-        setGoogleLoading(false);
-      }
-    } catch {
-      toast.error("Google sign-up failed. Please try again.");
-      setGoogleLoading(false);
-    }
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
+  } catch (error) {
+    console.error("Google sign-up error:", error);
+    toast.error("Google sign-up failed. Please try again.");
+    setGoogleLoading(false);
   }
+}
 
   return (
     <div className="page-wrap">
