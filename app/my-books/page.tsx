@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ export default function MyBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selected, setSelected] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const router = useRouter();
   const { data: session } = authClient.useSession();
@@ -60,15 +62,28 @@ export default function MyBooks() {
     fetchMyBooks();
   }, [sessionUser?.email]);
 
-
   async function remove() {
-    if (!selected) return;
+    if (!selected || deleting) return;
+
+    setDeleting(true);
 
     try {
+      // Get JWT token
+      const { data: tokenData, error: tokenError } =
+        await authClient.token();
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error("Authentication failed. Please log in again.");
+      }
+
+      // Delete book with JWT authorization
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/books/${selected.id}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${tokenData.token}`,
+          },
         }
       );
 
@@ -90,9 +105,10 @@ export default function MyBooks() {
       toast.error(
         error instanceof Error ? error.message : "Failed to delete book."
       );
+    } finally {
+      setDeleting(false);
     }
   }
-
 
   return (
     <Protected>
@@ -204,7 +220,9 @@ export default function MyBooks() {
       {selected && (
         <Modal
           title="Delete this book?"
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            if (!deleting) setSelected(null);
+          }}
         >
           <p>
             Are you sure you want to remove <b>{selected.title}</b>? This
@@ -214,6 +232,7 @@ export default function MyBooks() {
           <div className="modal-actions">
             <button
               className="btn btn-ghost"
+              disabled={deleting}
               onClick={() => setSelected(null)}
             >
               Keep book
@@ -222,9 +241,10 @@ export default function MyBooks() {
             <button
               className="btn btn-primary"
               style={{ background: "#d9534f" }}
+              disabled={deleting}
               onClick={remove}
             >
-              Delete book
+              {deleting ? "Deleting..." : "Delete book"}
             </button>
           </div>
         </Modal>

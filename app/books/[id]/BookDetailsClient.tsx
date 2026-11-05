@@ -61,21 +61,30 @@ export default function BookDetailsClient({ id }: { id: string }) {
       return;
     }
 
-    if (!book) return;
+    if (!book || busy) return;
 
     try {
       setBusy(true);
 
+      // Get JWT token
+      const { data: tokenData, error: tokenError } =
+        await authClient.token();
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error("Authentication failed. Please log in again.");
+      }
+
+      // Borrow book with JWT authorization
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/borrows`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenData.token}`,
           },
           body: JSON.stringify({
             bookId: book.id,
-            userEmail: sessionUser.email,
           }),
         }
       );
@@ -204,7 +213,9 @@ export default function BookDetailsClient({ id }: { id: string }) {
       {modal && (
         <Modal
           title="Borrow this book?"
-          onClose={() => setModal(false)}
+          onClose={() => {
+            if (!busy) setModal(false);
+          }}
         >
           <p>
             You're about to borrow <b>{book.title}</b>. Your
@@ -214,6 +225,7 @@ export default function BookDetailsClient({ id }: { id: string }) {
           <div className="modal-actions">
             <button
               className="btn btn-ghost"
+              disabled={busy}
               onClick={() => setModal(false)}
             >
               Not now

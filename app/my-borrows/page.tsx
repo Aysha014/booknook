@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,6 +17,16 @@ export default function MyBorrows() {
   const { data: session } = authClient.useSession();
   const sessionUser = session?.user ?? null;
 
+  async function getToken() {
+    const { data, error } = await authClient.token();
+
+    if (error || !data?.token) {
+      throw new Error("Authentication failed. Please log in again.");
+    }
+
+    return data.token;
+  }
+
   async function refresh() {
     if (!sessionUser?.email) {
       setItems([]);
@@ -24,16 +35,29 @@ export default function MyBorrows() {
     }
 
     try {
+      const token = await getToken();
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/borrows?userEmail=${encodeURIComponent(sessionUser.email)}`
+        `${process.env.NEXT_PUBLIC_API_URL}/borrows`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      if (!response.ok) throw new Error("Failed to load borrowed books.");
+      if (!response.ok) {
+        throw new Error("Failed to load borrowed books.");
+      }
 
       const data = await response.json();
       setItems(data);
     } catch (error) {
-      toast.error("Could not load borrowed books.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not load borrowed books."
+      );
     } finally {
       setLoading(false);
     }
@@ -47,9 +71,16 @@ export default function MyBorrows() {
     try {
       setReturningId(id);
 
+      const token = await getToken();
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/borrows/${id}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       const data = await response.json();
@@ -124,7 +155,9 @@ export default function MyBorrows() {
                           onClick={() => giveBack(b.id)}
                           disabled={returningId === b.id}
                         >
-                          {returningId === b.id ? "Returning..." : "Return book"}
+                          {returningId === b.id
+                            ? "Returning..."
+                            : "Return book"}
                         </button>
                       </td>
                     </tr>

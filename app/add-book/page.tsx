@@ -50,7 +50,15 @@ export default function AddBook() {
     setBusy(true);
 
     try {
-      // Upload image to ImgBB through our API route
+      // Get JWT token
+      const { data: tokenData, error: tokenError } =
+        await authClient.token();
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error("Authentication failed. Please log in again.");
+      }
+
+      // Upload image to ImgBB
       const uploadFormData = new FormData();
       uploadFormData.append("image", imageFile);
 
@@ -65,7 +73,7 @@ export default function AddBook() {
         throw new Error(uploadData.message || "Image upload failed.");
       }
 
-      // Save the uploaded image URL in MongoDB
+      // Prepare book data
       const book = {
         title: form.title.trim(),
         author: form.author.trim(),
@@ -73,18 +81,19 @@ export default function AddBook() {
         image: uploadData.url,
         description: form.description.trim(),
         addedByName: sessionUser.name,
-        addedByEmail: sessionUser.email,
         addedAt: new Date().toISOString().slice(0, 10),
         totalCopies,
         availableCopies: totalCopies,
       };
 
+      // Save book with JWT authorization
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/books`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenData.token}`,
           },
           body: JSON.stringify(book),
         }
@@ -182,7 +191,6 @@ export default function AddBook() {
                     setImageFile(e.target.files?.[0] || null)
                   }
                 />
-              
               </div>
 
               <div className="form-group full">

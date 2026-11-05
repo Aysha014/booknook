@@ -18,6 +18,7 @@ export default function EditBookClient({ id }: { id: string }) {
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!sessionUser) return;
@@ -55,15 +56,27 @@ export default function EditBookClient({ id }: { id: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!book) return;
+    if (!book || busy) return;
+
+    setBusy(true);
 
     try {
+      // Get JWT token
+      const { data: tokenData, error: tokenError } =
+        await authClient.token();
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error("Authentication failed. Please log in again.");
+      }
+
+      // Update book with JWT authorization
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/books/${id}`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenData.token}`,
           },
           body: JSON.stringify({
             title: book.title,
@@ -90,6 +103,8 @@ export default function EditBookClient({ id }: { id: string }) {
       toast.error(
         error instanceof Error ? error.message : "Failed to update book."
       );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -233,8 +248,8 @@ export default function EditBookClient({ id }: { id: string }) {
                 Cancel
               </button>
 
-              <button className="btn btn-primary">
-                Save changes
+              <button className="btn btn-primary" disabled={busy}>
+                {busy ? "Saving..." : "Save changes"}
               </button>
             </div>
           </form>
