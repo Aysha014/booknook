@@ -62,17 +62,19 @@ function LoginForm() {
   }
 
   async function google() {
-    try {
-      setGoogleLoading(true);
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: params.get("next") || "/",
-      });
-    } catch {
-      toast.error("Google sign-in failed. Please try again.");
-      setGoogleLoading(false);
-    }
+  try {
+    setGoogleLoading(true);
+
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: params.get("next") || "/",
+    });
+  } catch (error) {
+    console.error("Google sign-in error:", error);
+    toast.error("Google sign-in failed. Please try again.");
+    setGoogleLoading(false);
   }
+}
 
   return (
     <div className="container">

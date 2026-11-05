@@ -5,18 +5,36 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 import BookCard from "@/components/book-card";
-import { getBooks } from "@/lib/store";
-import { seedBooks } from "@/lib/data";
-import type { Book, Category } from "@/lib/types";
+import type { Book } from "@/lib/types";
 
 const categories = ["All", "Fiction", "Science", "History", "Kids", "Others"];
 
 export default function BooksPage() {
-  const [books, setBooks] = useState<Book[]>(seedBooks);
+  const [books, setBooks] = useState<Book[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => setBooks(getBooks()), []);
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/books`);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch books");
+        }
+
+        const data = await res.json();
+        setBooks(data);
+      } catch (error) {
+        console.error("Error loading books:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBooks();
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -66,7 +84,11 @@ export default function BooksPage() {
           </div>
         </div>
 
-        {filtered.length ? (
+        {loading ? (
+          <div className="empty-state">
+            <p>Loading books...</p>
+          </div>
+        ) : filtered.length ? (
           <div className="book-grid">
             {filtered.map((b) => (
               <BookCard key={b.id} book={b} />
