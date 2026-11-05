@@ -1,27 +1,90 @@
-# BookNook – A Small Online Library
+# BookNook – Online Library Management System
 
-A responsive, contemporary creative library frontend built with Next.js App Router, TypeScript and Tailwind CSS.
+BookNook is a responsive online library management application where users can explore books, add and manage their own books, borrow available books, and return borrowed books.
 
-## Features
-- Responsive home page with a three-slide Swiper hero and new-arrival book cards.
-- Browse and search the full book collection with category filters.
-- Book detail pages with availability and a borrow confirmation flow.
-- Demo registration/login UI and protected-page redirects.
-- Add, edit and delete books in the personal collection.
-- Track borrowed books and return them, with copy counts updated in the demo data.
-- Toast notifications, loading states, custom not-found page and page-specific titles.
-- Reusable components and a service layer designed for later Express/MongoDB integration.
-- Warm cream palette with coral, lavender and butter-yellow accents.
+The application is built with Next.js and communicates with a separate Express.js backend connected to MongoDB.
 
-## Run locally
+## Live Demo
+
+- **Frontend:** https://booknook-client-seven.vercel.app
+- **Backend API:** https://booknook-server-three-zeta.vercel.app
+
+## Technologies Used
+
+- Next.js 15
+- React
+- TypeScript
+- Tailwind CSS
+- Better Auth
+- MongoDB
+- Express.js
+- React Hot Toast
+- Lucide React
+- Vercel
+
+## Key Features
+
+1. **User Authentication:** Register and log in using Better Auth.
+2. **Browse Books:** Explore available books and view their details.
+3. **Book Management:** Add, edit, and delete books.
+4. **Borrow Books:** Borrow available books with a 14-day borrowing period.
+5. **My Books:** View and manage books added by the logged-in user.
+6. **My Borrows:** View all books currently borrowed by the user.
+7. **Return Books:** Return borrowed books and automatically update available copies.
+8. **Availability Management:** Track total and available copies of each book.
+9. **Protected Pages:** Restrict access to user-specific features.
+10. **Responsive Design:** Optimized for desktop, tablet, and mobile devices.
+
+## Installation and Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone YOUR_FRONTEND_REPOSITORY_URL
+cd booknook-client
+```
+
+### 2. Install Dependencies
+
 ```bash
 npm install
+```
+
+### 3. Configure Environment Variables
+
+Create a `.env.local` file in the root directory.
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+MONGODB_URI=your_mongodb_connection_string
+
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=your_better_auth_secret
+```
+
+Add any configured Google or GitHub OAuth credentials required by your authentication setup.
+
+### 4. Start the Development Server
+
+```bash
 npm run dev
 ```
-Open http://localhost:3000.
 
-## Demo note
-This frontend currently uses browser localStorage and sample data to demonstrate interactions. Authentication is a frontend demo only; it is not secure and does not replace BetterAuth or server-side JWT verification. Connect the API service layer to the Express backend and implement BetterAuth before production use.
+Open http://localhost:3000 in your browser.
 
-## Live site
-Add your deployed URL here after hosting.
+## Backend Connection
+
+The frontend communicates with a separate Express.js backend through REST APIs.
+
+The backend handles book management and borrowing operations, while MongoDB stores application data.
+
+## Deployment
+
+The frontend is deployed on Vercel.
+
+**Live Application:** https://booknook-client-seven.vercel.app
+
+## Author
+
+Developed as a full-stack library management project.
