@@ -11,20 +11,34 @@ import Hero from "@/components/hero";
 import SectionHeading from "@/components/section-heading";
 import BookCard from "@/components/book-card";
 
-import { getBooks } from "@/lib/store";
-import { seedBooks } from "@/lib/data";
 import type { Book } from "@/lib/types";
 
 export default function Home() {
-  const [books, setBooks] = useState<Book[]>(seedBooks);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load latest six books
+  // Load latest six books from MongoDB through backend API
   useEffect(() => {
-    const latestBooks = getBooks()
-      .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
-      .slice(0, 6);
+    const fetchLatestBooks = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/books?limit=6`
+        );
 
-    setBooks(latestBooks);
+        if (!response.ok) {
+          throw new Error("Failed to fetch latest books.");
+        }
+
+        const data: Book[] = await response.json();
+        setBooks(data);
+      } catch (error) {
+        console.error("Error loading latest books:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLatestBooks();
   }, []);
 
   return (
@@ -49,16 +63,22 @@ export default function Home() {
           </div>
 
           <div className="book-grid">
-            {books.map((book) => (
-              <motion.div
-                key={book.id}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-              >
-                <BookCard book={book} />
-              </motion.div>
-            ))}
+            {loading ? (
+              <p>Loading books...</p>
+            ) : books.length > 0 ? (
+              books.map((book) => (
+                <motion.div
+                  key={book.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <BookCard book={book} />
+                </motion.div>
+              ))
+            ) : (
+              <p>No books available yet.</p>
+            )}
           </div>
 
           <div className="center-action">
@@ -81,7 +101,6 @@ export default function Home() {
           />
 
           <div className="how-grid">
-            {/* Step 1 */}
             <div className="how-card">
               <div className="how-icon">
                 <Bookmark />
@@ -95,7 +114,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Step 2 */}
             <div className="how-card">
               <div className="how-icon">
                 <RefreshCw />
@@ -109,7 +127,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Step 3 */}
             <div className="how-card">
               <div className="how-icon">
                 <Heart />
