@@ -52,7 +52,14 @@ function LoginForm() {
 
       toast.success("Welcome back to BookNook!");
 
-      const nextRoute = params.get("next") || "/";
+      const requestedRoute = params.get("next");
+
+      const nextRoute =
+        requestedRoute?.startsWith("/") &&
+          !requestedRoute.startsWith("//")
+          ? requestedRoute
+          : "/";
+
       router.push(nextRoute);
     } catch {
       toast.error("Login failed. Please try again.");
@@ -62,19 +69,19 @@ function LoginForm() {
   }
 
   async function google() {
-  try {
-    setGoogleLoading(true);
+    try {
+      setGoogleLoading(true);
 
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: params.get("next") || "/",
-    });
-  } catch (error) {
-    console.error("Google sign-in error:", error);
-    toast.error("Google sign-in failed. Please try again.");
-    setGoogleLoading(false);
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: params.get("next") || "/",
+      });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      toast.error("Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
   }
-}
 
   return (
     <div className="container">
@@ -164,9 +171,9 @@ function LoginForm() {
 
             {/* Forget Password */}
             <div className="forgot-password" style={{ color: "#EF4444", fontSize: 13, fontWeight: 600, cursor: "default" }}>
-              
-                Forgot password?
-              
+
+              Forgot password?
+
             </div>
 
             {/* Login Button */}

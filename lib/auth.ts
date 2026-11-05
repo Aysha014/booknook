@@ -27,6 +27,14 @@ export const auth = betterAuth({
     },
   },
 
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+      allowDifferentEmails: false,
+    },
+  },
+
   database: mongodbAdapter(db, { client }),
 
   plugins: [
