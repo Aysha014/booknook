@@ -7,8 +7,6 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { getBooks, borrowBook } from "@/lib/store";
-import { seedBooks } from "@/lib/data";
 import { authClient } from "@/lib/auth-client";
 import type { Book } from "@/lib/types";
 import Modal from "@/components/modal";
@@ -19,18 +17,45 @@ export default function BookDetailsClient({ id }: { id: string }) {
   const sessionUser = session?.user ?? null;
 
   const [book, setBook] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setBook(
-      getBooks().find((b) => b.id === id) ||
-        seedBooks.find((b) => b.id === id) ||
-        null
-    );
+    async function fetchBook() {
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/books/${id}`
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            response.status === 404
+              ? "Book not found."
+              : "Failed to load book."
+          );
+        }
+
+        const data: Book = await response.json();
+        setBook(data);
+      } catch (error) {
+        setBook(null);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to load book."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBook();
   }, [id]);
 
-  function borrow() {
+  async function borrow() {
     if (!sessionUser) {
       router.push(`/login?next=${encodeURIComponent(`/books/${id}`)}`);
       return;
@@ -41,20 +66,39 @@ export default function BookDetailsClient({ id }: { id: string }) {
     try {
       setBusy(true);
 
-      borrowBook(book, {
-        name: sessionUser.name,
-        email: sessionUser.email,
-        photoURL: sessionUser.image ?? "",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/borrows`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookId: book.id,
+            userEmail: sessionUser.email,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Could not borrow this book."
+        );
+      }
+
+      setBook({
+        ...book,
+        availableCopies: book.availableCopies - 1,
       });
 
       toast.success("Book borrowed! Happy reading.");
       setModal(false);
-
-      setBook(getBooks().find((b) => b.id === book.id) || book);
-    } catch (e) {
+    } catch (error) {
       toast.error(
-        e instanceof Error
-          ? e.message
+        error instanceof Error
+          ? error.message
           : "Could not borrow this book."
       );
     } finally {
@@ -62,11 +106,22 @@ export default function BookDetailsClient({ id }: { id: string }) {
     }
   }
 
-  if (!book) {
+  if (loading) {
     return (
       <div className="page-loader">
         <span className="spinner" />
         Loading book…
+      </div>
+    );
+  }
+
+  if (!book) {
+    return (
+      <div className="page-loader">
+        Book not found.
+        <Link href="/books" className="text-link">
+          Back to all books
+        </Link>
       </div>
     );
   }

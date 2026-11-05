@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,34 +8,91 @@ import { Pencil, Trash2, Plus } from "lucide-react";
 
 import Protected from "@/components/protected";
 import Modal from "@/components/modal";
-import { getBooks, deleteBook } from "@/lib/store";
 import { authClient } from "@/lib/auth-client";
 import type { Book } from "@/lib/types";
 
 export default function MyBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selected, setSelected] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const sessionUser = session?.user ?? null;
 
-  function refresh() {
-    setBooks(getBooks().filter((b) => b.addedByEmail === sessionUser?.email));
-  }
-
   useEffect(() => {
-    refresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    async function fetchMyBooks() {
+      if (!sessionUser?.email) {
+        setBooks([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/books`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch books.");
+        }
+
+        const data: Book[] = await response.json();
+
+        const myBooks = data.filter(
+          (book) => book.addedByEmail === sessionUser.email
+        );
+
+        setBooks(myBooks);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not load your books."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMyBooks();
   }, [sessionUser?.email]);
 
-  function remove() {
+
+  async function remove() {
     if (!selected) return;
 
-    deleteBook(selected.id);
-    toast.success("Book removed from your shelf.");
-    setSelected(null);
-    refresh();
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/books/${selected.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete book.");
+      }
+
+      setBooks((prevBooks) =>
+        prevBooks.filter((book) => book.id !== selected.id)
+      );
+
+      toast.success("Book deleted successfully.");
+      setSelected(null);
+    } catch (error) {
+      console.error("Error deleting book:", error);
+
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete book."
+      );
+    }
   }
+
 
   return (
     <Protected>
@@ -56,7 +112,12 @@ export default function MyBooks() {
             </Link>
           </div>
 
-          {books.length ? (
+          {loading ? (
+            <div className="page-loader">
+              <span className="spinner" />
+              Loading your books…
+            </div>
+          ) : books.length ? (
             <div className="table-wrap">
               <table>
                 <thead>
@@ -92,16 +153,22 @@ export default function MyBooks() {
                       </td>
 
                       <td>{b.category}</td>
+
                       <td>
                         {b.availableCopies}/{b.totalCopies}
                       </td>
-                      <td>{new Date(b.addedAt).toLocaleDateString()}</td>
+
+                      <td>
+                        {new Date(b.addedAt).toLocaleDateString()}
+                      </td>
 
                       <td>
                         <div className="table-actions">
                           <button
                             className="small-action"
-                            onClick={() => router.push(`/edit-book/${b.id}`)}
+                            onClick={() =>
+                              router.push(`/edit-book/${b.id}`)
+                            }
                           >
                             <Pencil size={13} /> Edit
                           </button>

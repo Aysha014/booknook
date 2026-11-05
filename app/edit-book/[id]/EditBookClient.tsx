@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Protected from "@/components/protected";
-import { getBooks, updateBook } from "@/lib/store";
 import { authClient } from "@/lib/auth-client";
 import type { Book, Category } from "@/lib/types";
 
@@ -17,27 +16,96 @@ export default function EditBookClient({ id }: { id: string }) {
   const sessionUser = session?.user ?? null;
 
   const [book, setBook] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!sessionUser) return;
 
-    const b = getBooks().find((x) => x.id === id);
+    async function fetchBook() {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/books/${id}`
+        );
 
-    if (b && b.addedByEmail === sessionUser.email) {
-      setBook(b);
+        if (!response.ok) {
+          setNotFound(true);
+          return;
+        }
+
+        const data: Book = await response.json();
+
+        if (data.addedByEmail !== sessionUser!.email) {
+          setNotFound(true);
+          return;
+        }
+
+        setBook(data);
+      } catch (error) {
+        console.error("Error fetching book:", error);
+        toast.error("Failed to load book.");
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    fetchBook();
   }, [id, sessionUser]);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!book) return;
 
-    updateBook(book);
-    toast.success("Book details updated.");
-    router.push("/my-books");
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/books/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: book.title,
+            author: book.author,
+            category: book.category,
+            image: book.image,
+            description: book.description,
+            totalCopies: book.totalCopies,
+            availableCopies: book.availableCopies,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update book.");
+      }
+
+      toast.success("Book details updated.");
+      router.push("/my-books");
+    } catch (error) {
+      console.error("Error updating book:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update book."
+      );
+    }
   }
 
-  if (!book) {
+  if (loading) {
+    return (
+      <Protected>
+        <div className="page-wrap container">
+          <div className="empty-state">
+            <h3>Loading book...</h3>
+          </div>
+        </div>
+      </Protected>
+    );
+  }
+
+  if (notFound || !book) {
     return (
       <Protected>
         <div className="page-wrap container">
