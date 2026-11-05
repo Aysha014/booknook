@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -18,11 +19,11 @@ export default function AddBook() {
     title: "",
     author: "",
     category: "Fiction" as Category,
-    image: "",
     description: "",
     totalCopies: "1",
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
   function change(k: keyof typeof form, v: string) {
@@ -34,6 +35,11 @@ export default function AddBook() {
 
     if (!sessionUser) return;
 
+    if (!imageFile) {
+      toast.error("Please select a book image.");
+      return;
+    }
+
     const totalCopies = Number(form.totalCopies);
 
     if (!Number.isInteger(totalCopies) || totalCopies < 1) {
@@ -44,11 +50,27 @@ export default function AddBook() {
     setBusy(true);
 
     try {
+      // Upload image to ImgBB through our API route
+      const uploadFormData = new FormData();
+      uploadFormData.append("image", imageFile);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.message || "Image upload failed.");
+      }
+
+      // Save the uploaded image URL in MongoDB
       const book = {
         title: form.title.trim(),
         author: form.author.trim(),
         category: form.category,
-        image: form.image.trim(),
+        image: uploadData.url,
         description: form.description.trim(),
         addedByName: sessionUser.name,
         addedByEmail: sessionUser.email,
@@ -150,18 +172,17 @@ export default function AddBook() {
               </div>
 
               <div className="form-group full">
-                <label>Book image URL *</label>
+                <label>Book image *</label>
                 <input
                   className="field"
-                  type="url"
+                  type="file"
+                  accept="image/*"
                   required
-                  value={form.image}
-                  onChange={(e) => change("image", e.target.value)}
-                  placeholder="Paste an image URL (ImgBB or Postimages)"
+                  onChange={(e) =>
+                    setImageFile(e.target.files?.[0] || null)
+                  }
                 />
-                <span className="form-help">
-                  Image hosting upload can be connected when the backend is added.
-                </span>
+              
               </div>
 
               <div className="form-group full">
@@ -205,7 +226,7 @@ export default function AddBook() {
               </button>
 
               <button className="btn btn-primary" disabled={busy}>
-                {busy ? "Adding…" : "Add book"}
+                {busy ? "Uploading and adding…" : "Add book"}
               </button>
             </div>
           </form>
